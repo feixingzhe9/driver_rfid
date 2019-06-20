@@ -1,5 +1,9 @@
-#include <driver_rfid.h>
+/*
+ *  Author: Kaka Xie
+ *  brief: rfid
+ */
 
+#include <driver_rfid.h>
 
 void DriverRFID::pub_msg_to_can(mrobot_msgs::vci_can can_msg)
 {
@@ -24,8 +28,8 @@ int DriverRFID::get_version(uint8_t dev_id, uint8_t type)
     protocol.can_msg.DataLen = 3;
     protocol.can_msg.Data.resize(3);
     protocol.can_msg.Data[0] = 0;
-    protocol.can_msg.Data[1] = type;
-    protocol.can_msg.Data[2] = protocol.serial_num;
+    protocol.can_msg.Data[1] = protocol.serial_num;
+    protocol.can_msg.Data[2] = type;
     protocol.retry_cnt = 3;
     protocol.expect_len.len_min = 3;
     protocol.expect_len.len_max = 32;
@@ -34,11 +38,46 @@ int DriverRFID::get_version(uint8_t dev_id, uint8_t type)
     return error;
 }
 
+
+int DriverRFID::ack_mcu_upload(uint8_t dev_id, CAN_ID_UNION id, uint8_t serial_num)
+{
+    ROS_INFO("start to ack mcu upload info. . . ");
+    int error = 0;
+    mrobot_msgs::vci_can can_msg;
+
+    id.CanID_Struct.SrcMACID = 0;
+    id.CanID_Struct.DestMACID = RFID_CAN_MAC_SRC_ID_BASE + dev_id;
+    id.CanID_Struct.FUNC_ID = 0x02;
+    id.CanID_Struct.ACK = 1;
+    id.CanID_Struct.res = 0;
+
+    can_msg.ID = id.CANx_ID;
+    can_msg.DataLen = 2;
+    can_msg.Data.resize(2);
+    can_msg.Data[0] = 0x00;
+    can_msg.Data[1] = serial_num;
+    this->pub_msg_to_can(can_msg);
+    return error;
+}
+
+void DriverRFID::pub_rfid_info(uint8_t dev_id, uint16_t data)
+{
+    std_msgs::UInt16MultiArray info;
+    info.data.clear();
+    info.data.push_back(dev_id);
+    info.data.push_back(data);
+    this->rfid_pub.publish(info);
+}
+
 uint8_t DriverRFID::get_dev_id_by_src_id(uint8_t src_id)
 {
     if(src_id < RFID_CAN_MAC_SRC_ID_BASE)
     {
         return 0xff;
+    }
+    if(src_id == RFID_CAN_MAC_SRC_ID_BASE + 0x0f - 1)
+    {
+        return 0x0f - 1;
     }
     if(src_id > RFID_CAN_MAC_SRC_ID_BASE + RFID_MAX_NUM)
     {
@@ -59,7 +98,7 @@ void DriverRFID::rcv_from_can_node_callback(const mrobot_msgs::vci_can::ConstPtr
     {
         return;
     }
-    //if(this->is_log_on == true)
+
     if(0)
     {
         for(uint8_t i = 0; i < msg->DataLen; i++)
@@ -70,6 +109,7 @@ void DriverRFID::rcv_from_can_node_callback(const mrobot_msgs::vci_can::ConstPtr
     can_msg.ID = msg->ID;
     id.CANx_ID = can_msg.ID;
     can_msg.DataLen = msg->DataLen;
+    uint8_t data_len = msg->DataLen;
 
     uint8_t dev_id = this->get_dev_id_by_src_id(id.CanID_Struct.SrcMACID);
     if(dev_id == 0xff)
@@ -82,70 +122,72 @@ void DriverRFID::rcv_from_can_node_callback(const mrobot_msgs::vci_can::ConstPtr
 
     if(id.CanID_Struct.SourceID == CAN_SOURCE_ID_READ_VERSION)
     {
-        uint8_t len;
-        len = msg->Data[1];
-        ROS_INFO("rcv from mcu,source id CAN_SOURCE_ID_READ_VERSION");
         protocol_ack.serial_num = msg->Data[0];
-        
-        std::string version;
-        version.clear();
-        for (uint8_t i = 0; i < len; i++)
+        uint8_t version_type = msg->Data[1];
+        uint8_t len = msg->Data[2];
+        ROS_INFO("rcv from mcu,source id CAN_SOURCE_ID_READ_VERSION");
+
+        switch(version_type)
         {
-            version.push_back(*(char *)&(msg->Data[i + 2]));
+            case 1:
+                for (uint8_t i = 0; i < len; i++)
+                {
+                    this->sw_version[dev_id].push_back(*(char *)&(msg->Data[i + 3]));
+                }
+                ROS_INFO("MCU software version :%s", this->sw_version[dev_id].c_str());
+                break;
+
+            case 2:
+                for (uint8_t i = 0; i < len; i++)
+                {
+                    this->protocol_version[dev_id].push_back(*(char *)&(msg->Data[i + 3]));
+                }
+                ROS_INFO("MCU protocol_version version :%s", this->protocol_version[dev_id].c_str());
+                break;
+
+            case 3:
+                for (uint8_t i = 0; i < len; i++)
+                {
+                    this->hw_version[dev_id].push_back(*(char *)&(msg->Data[i + 3]));
+                }
+                ROS_INFO("MCU hardware version :%s", this->hw_version[dev_id].c_str());
+                break;
         }
-        ROS_INFO("version :%s", version.c_str());
+
         do
         {
             boost::mutex::scoped_lock(this->mtx);
             this->protocol_ack_vector.push_back(protocol_ack);
-        }while(0);
-#if 0
-        get_version_ack_t get_version_ack;
-        get_version_ack.get_version_type = msg->Data[0];
-        if(get_version_ack.get_version_type == 1)//software version
-        {
-            sys_powerboard->sw_version.resize(len);
-            sys_powerboard->sw_version.clear();
-            for(uint8_t i = 0; i < len; i++)
-            {
-                sys_powerboard->sw_version.push_back(*(char *)&(msg->Data[i+2]));
-                get_version_ack.sw_version.push_back(*(char *)&(msg->Data[i+2]));
-            }
-
-            n.setParam(software_version_param,sys_powerboard->sw_version.data());
-        }
-        else if(get_version_ack.get_version_type == 2)//protocol version
-        {
-            sys_powerboard->protocol_version.resize(len);
-            sys_powerboard->protocol_version.clear();
-            for(uint8_t i = 0; i < len; i++)
-            {
-                sys_powerboard->protocol_version.push_back(*(char *)&(msg->Data[i+2]));
-                get_version_ack.protocol_version.push_back(*(char *)&(msg->Data[i+2]));
-            }
-            n.setParam(protocol_version_param,sys_powerboard->protocol_version.data());
-        }
-        else if(get_version_ack.get_version_type == 3)//hardware version
-        {
-            sys_powerboard->hw_version.resize(len);
-            sys_powerboard->hw_version.clear();
-            //ROS_ERROR("hardware version length: %d",len);
-            for(uint8_t i = 0; i < len; i++)
-            {
-                sys_powerboard->hw_version.push_back(*(char *)&(msg->Data[i+2]));
-                get_version_ack.hw_version.push_back(*(char *)&(msg->Data[i+2]));
-            }
-            n.setParam(hardware_version_param,sys_powerboard->hw_version.data());
-        }
-
-        do
-        {
-            boost::mutex::scoped_lock(this->mtx);
-            this->get_version_ack_vector.push_back(get_version_ack);
-        }while(0);
-
-#endif
+        } while (0);
     }
+
+    if(id.CanID_Struct.SourceID == CAN_SOURCE_ID_RFID_INFO)
+    {
+        if (data_len == 5)
+        {
+            std_msgs::String rfid;
+            uint8_t status = 1;
+            int id_type = 0;
+            uint16_t rfid_int = 0;
+            rfid.data.resize(4);
+            rfid.data.clear();
+            rfid_int = /*(msg->Data[0] << 24) | (msg->Data[1] << 16) |*/ (msg->Data[2] << 8) | msg->Data[3];
+            for(uint8_t i = 0; i < 4; i++)
+            {
+                ROS_INFO("msg->Data[%d]: 0x%x", i, msg->Data[i]);
+            }
+
+            ROS_INFO("rfid int data :%d", rfid_int);
+
+            CAN_ID_UNION id;
+            uint8_t serial_num = msg->Data[msg->DataLen - 1];
+            id.CanID_Struct.ACK = 1;
+            id.CanID_Struct.SourceID = CAN_SOURCE_ID_RFID_INFO;
+            this->ack_mcu_upload(dev_id, id, serial_num);
+            this->pub_rfid_info(dev_id, rfid_int);
+        }
+    }
+
 
 }
 

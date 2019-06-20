@@ -5,16 +5,16 @@
 #include <mrobot_msgs/vci_can.h>
 #include <roscan/can_long_frame.h>
 #include <boost/thread/mutex.hpp>
-#include "std_msgs/UInt8MultiArray.h"
+#include "std_msgs/UInt16MultiArray.h"
 
-#define RFID_MAX_NUM                    8
+#define RFID_MAX_NUM                    4
 
 #define RFID_CAN_MAC_SRC_ID_BASE        0x80
 
 
 #define CAN_SOURCE_ID_READ_VERSION      0x01
 
-#define CAN_SOURCE_ID_RFID_INFO         0x80
+#define CAN_SOURCE_ID_RFID_INFO         0x83
 
 
 #define PROTOCOL_DATA_LEN_MAX   32
@@ -52,7 +52,7 @@ class DriverRFID
         {
             sub_from_can = n.subscribe("can_to_driver_rfid", 2, &DriverRFID::rcv_from_can_node_callback, this);
             pub_to_can = n.advertise<mrobot_msgs::vci_can>("driver_rfid_to_can", 1000);
-            rfid_pub = n.advertise<std_msgs::UInt8MultiArray>("/driver_rfid/pub_info", 2);
+            rfid_pub = n.advertise<std_msgs::UInt16MultiArray>("/driver_rfid/pub_info", 2);
 
             protocol_vector.clear();
             protocol_ack_vector.clear();
@@ -78,15 +78,18 @@ class DriverRFID
         ros::Publisher pub_to_can;
 
         uint8_t protocol_serial_num;
+        int ack_mcu_upload(uint8_t dev_id, CAN_ID_UNION id, uint8_t serial_num);
         uint8_t get_dev_id_by_src_id(uint8_t src_id);
         void rcv_from_can_node_callback(const mrobot_msgs::vci_can::ConstPtr &c_msg);
+        void pub_rfid_info(uint8_t dev_id, uint16_t data);
 
         std::string hw_version[RFID_MAX_NUM];
         std::string sw_version[RFID_MAX_NUM];
         std::string protocol_version[RFID_MAX_NUM];
 
-        std::string rfid_MCU_version_param[RFID_MAX_NUM] = {"mcu_rfid_0_version","mcu_rfid_1_version","mcu_rfid_2_version","mcu_rfid_3_version",\
-                                                            "mcu_rfid_4_version","mcu_rfid_5_version","mcu_rfid_6_version","mcu_rfid_7_version"};
+        std::string rfid_MCU_version_param[RFID_MAX_NUM] = {"mcu_rfid_0_version","mcu_rfid_1_version","mcu_rfid_2_version","mcu_rfid_3_version"
+                                                           //, "mcu_rfid_4_version","mcu_rfid_5_version","mcu_rfid_6_version","mcu_rfid_7_version"
+                                                            };
 
 
 
