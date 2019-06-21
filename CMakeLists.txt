@@ -128,7 +128,7 @@ include_directories(
 
 add_executable(driver_rfid_node 
     src/main.cpp
-    src/rfid.cpp
+    src/driver_rfid.cpp
     src/can_protocol.cpp
 )
 

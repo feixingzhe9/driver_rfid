@@ -86,6 +86,100 @@ uint8_t DriverRFID::get_dev_id_by_src_id(uint8_t src_id)
     return src_id - RFID_CAN_MAC_SRC_ID_BASE;
 }
 
+std::string DriverRFID::hex_2_str(uint8_t hex)
+{
+    std::string str;
+    char c[2];
+    str.clear();
+    sprintf(c, "%02x", hex);
+    str.push_back(c[0]);
+    str.push_back(c[1]);
+    return str;
+}
+
+void DriverRFID::old_pub_rfid_info(std::string uid, std::string type, std::string data)
+{
+    nlohmann::json j;
+    std_msgs::String pub_json_msg;
+    std::stringstream ss;
+
+    j.clear();
+    j =
+        {
+            {"pub_name", "rfid_info"},
+            {"msg", "success" },
+            {"error_code", "0" },
+            {
+                "data",
+                {
+                    {"key", uid.c_str()},
+                    {"type", type.c_str()},
+                    {"data", data.c_str()},
+                }
+            }
+         };
+
+    ss.clear();
+    ss << j;
+    pub_json_msg.data = ss.str();
+    this->old_rfid_pub.publish(pub_json_msg);
+}
+
+void DriverRFID::old_rcv_from_can_node_callback(const mrobot_msgs::vci_can::ConstPtr &c_msg)
+{
+    mrobot_msgs::vci_can can_msg;
+    mrobot_msgs::vci_can long_msg;
+    CAN_ID_UNION id;
+
+    long_msg = this->long_frame.frame_construct(c_msg);
+    mrobot_msgs::vci_can* msg = &long_msg;
+    if( msg->ID == 0 )
+    {
+        return;
+    }
+
+    can_msg.ID = msg->ID;
+    id.CANx_ID = can_msg.ID;
+    can_msg.DataLen = msg->DataLen;
+    uint8_t data_len = msg->DataLen;
+
+    uint8_t source_id = id.CanID_Struct.SourceID;
+
+    switch(source_id)
+    {
+        case OLD_CAN_SOURCE_ID_RFID_UID:
+            ROS_INFO("get source id of rfid uid");
+            this->old_rfid_uid.clear();
+            for(uint8_t i = 0; i < data_len; i++)
+            {
+                this->old_rfid_uid += hex_2_str(msg->Data[i]);
+            }
+            ROS_INFO("uid: %s", this->old_rfid_uid.c_str());
+            break;
+
+        case OLD_CAN_SOURCE_ID_RFID_TYPE:
+            ROS_INFO("get source id of rfid type");
+            this->old_rfid_type.clear();
+            for(uint8_t i = 0; i < data_len; i++)
+            {
+                this->old_rfid_type += hex_2_str(msg->Data[i]);
+            }
+            ROS_INFO("rfid type: %s", this->old_rfid_type.c_str());
+            break;
+
+        case OLD_CAN_SOURCE_ID_RFID_DATA:
+            ROS_INFO("get source id of rfid data");
+            this->old_rfid_data.clear();
+            for(uint8_t i = 0; i < data_len; i++)
+            {
+                this->old_rfid_data += hex_2_str(msg->Data[i]);
+            }
+            ROS_INFO("rfid data: %s", this->old_rfid_data.c_str());
+            this->old_pub_rfid_info(this->old_rfid_uid, this->old_rfid_type, this->old_rfid_data);
+            break;
+    }
+}
+
 void DriverRFID::rcv_from_can_node_callback(const mrobot_msgs::vci_can::ConstPtr &c_msg)
 {
     mrobot_msgs::vci_can can_msg;

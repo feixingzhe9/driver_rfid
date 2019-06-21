@@ -13,8 +13,13 @@
 
 
 #define CAN_SOURCE_ID_READ_VERSION      0x01
-
 #define CAN_SOURCE_ID_RFID_INFO         0x83
+
+
+#define OLD_CAN_SOURCE_ID_RFID_VERSION  0x01
+#define OLD_CAN_SOURCE_ID_RFID_UID      0x81
+#define OLD_CAN_SOURCE_ID_RFID_TYPE     0x82
+#define OLD_CAN_SOURCE_ID_RFID_DATA     0x83
 
 
 #define PROTOCOL_DATA_LEN_MAX   32
@@ -51,12 +56,17 @@ class DriverRFID
         DriverRFID(bool log_on = false)
         {
             sub_from_can = n.subscribe("can_to_driver_rfid", 2, &DriverRFID::rcv_from_can_node_callback, this);
-            pub_to_can = n.advertise<mrobot_msgs::vci_can>("driver_rfid_to_can", 1000);
+            old_sub_from_can = n.subscribe("rx_rfid_node", 2, &DriverRFID::old_rcv_from_can_node_callback, this);
+            pub_to_can = n.advertise<mrobot_msgs::vci_can>("driver_rfid_to_can", 10);
+            old_pub_to_can = n.advertise<mrobot_msgs::vci_can>("tx_rfid_node", 10);
             rfid_pub = n.advertise<std_msgs::UInt16MultiArray>("/driver_rfid/pub_info", 2);
+
+            old_rfid_pub = n.advertise<std_msgs::String>("rfid_pub_old", 2);
 
             protocol_vector.clear();
             protocol_ack_vector.clear();
             protocol_serial_num = 0;
+old_rfid_uid.clear();
         }
 
         can_long_frame  long_frame;
@@ -74,14 +84,24 @@ class DriverRFID
     private:
         ros::NodeHandle n;
         ros::Publisher rfid_pub;
+        ros::Publisher old_rfid_pub;
         ros::Subscriber sub_from_can;
+        ros::Subscriber old_sub_from_can;
         ros::Publisher pub_to_can;
+        ros::Publisher old_pub_to_can;
 
         uint8_t protocol_serial_num;
+        std::string hex_2_str(uint8_t hex);
         int ack_mcu_upload(uint8_t dev_id, CAN_ID_UNION id, uint8_t serial_num);
         uint8_t get_dev_id_by_src_id(uint8_t src_id);
         void rcv_from_can_node_callback(const mrobot_msgs::vci_can::ConstPtr &c_msg);
+        void old_rcv_from_can_node_callback(const mrobot_msgs::vci_can::ConstPtr &c_msg);
         void pub_rfid_info(uint8_t dev_id, uint16_t data);
+        void old_pub_rfid_info(std::string uid, std::string type, std::string data);
+
+        std::string old_rfid_uid;
+        std::string old_rfid_type;
+        std::string old_rfid_data;
 
         std::string hw_version[RFID_MAX_NUM];
         std::string sw_version[RFID_MAX_NUM];
