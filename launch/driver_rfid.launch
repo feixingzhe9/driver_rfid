@@ -1,6 +1,5 @@
 <launch>
-    <node name="driver_rfid_node" pkg="driver_rfid" type="driver_rfid_node" respawn="true" />
-    <param name="noah_pb_can_data_log_on" type="bool" value="false" />
+    <node name="driver_rfid" pkg="driver_rfid" type="driver_rfid_node" respawn="true" />
     <rosparam file="$(find driver_rfid)/config/driver_rfid.yaml" command="load"/>
 
 </launch>
