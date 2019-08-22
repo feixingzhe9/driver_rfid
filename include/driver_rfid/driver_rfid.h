@@ -9,18 +9,19 @@
 
 #define RFID_MAX_NUM                    4
 
-#define RFID_CAN_MAC_SRC_ID_BASE        0x80
+#define RFID_CAN_MAC_SRC_ID_BASE                0x80
 
 
-#define CAN_SOURCE_ID_READ_VERSION      0x01
-#define CAN_SOURCE_ID_RFID_INFO         0x83
+#define CAN_SOURCE_ID_READ_VERSION              0x01
+#define CAN_SOURCE_ID_RFID_INFO                 0x83
 
 
-#define OLD_CAN_SOURCE_ID_RFID_VERSION  0x01
-#define OLD_CAN_SOURCE_ID_RFID_UID      0x81
-#define OLD_CAN_SOURCE_ID_RFID_TYPE     0x82
-#define OLD_CAN_SOURCE_ID_RFID_DATA     0x83
+#define OLD_CAN_SOURCE_ID_RFID_VERSION          0x01
+#define OLD_CAN_SOURCE_ID_RFID_UID              0x81
+#define OLD_CAN_SOURCE_ID_RFID_TYPE             0x82
+#define OLD_CAN_SOURCE_ID_RFID_DATA             0x83
 
+#define CAN_SOURCE_ID_UPLOAD_RFID_LEAVE         0xb2
 
 #define PROTOCOL_DATA_LEN_MAX   32
 
@@ -96,7 +97,7 @@ old_rfid_uid.clear();
         uint8_t get_dev_id_by_src_id(uint8_t src_id);
         void rcv_from_can_node_callback(const mrobot_msgs::vci_can::ConstPtr &c_msg);
         void old_rcv_from_can_node_callback(const mrobot_msgs::vci_can::ConstPtr &c_msg);
-        void pub_rfid_info(uint8_t dev_id, uint16_t data);
+        void pub_rfid_info(uint8_t dev_id, uint8_t type, uint16_t data);
         void old_pub_rfid_info(std::string uid, std::string type, std::string data);
 
         std::string old_rfid_uid;

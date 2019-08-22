@@ -42,6 +42,7 @@ int DriverRFID::get_version(uint8_t dev_id, uint8_t type)
 int DriverRFID::ack_mcu_upload(uint8_t dev_id, CAN_ID_UNION id, uint8_t serial_num)
 {
     ROS_INFO("start to ack mcu upload info. . . ");
+    ROS_INFO("ack upload info serial num: %d ", serial_num);
     int error = 0;
     mrobot_msgs::vci_can can_msg;
 
@@ -60,12 +61,23 @@ int DriverRFID::ack_mcu_upload(uint8_t dev_id, CAN_ID_UNION id, uint8_t serial_n
     return error;
 }
 
-void DriverRFID::pub_rfid_info(uint8_t dev_id, uint16_t data)
+void DriverRFID::pub_rfid_info(uint8_t dev_id, uint8_t type, uint16_t data)
 {
     std_msgs::UInt16MultiArray info;
     info.data.clear();
-    info.data.push_back(dev_id);
-    info.data.push_back(data);
+    if(type == 0)
+    {
+        info.data.push_back(dev_id);
+        info.data.push_back(data);
+    }
+    else if(type == 1)
+    {
+        info.data.push_back(dev_id);
+    }
+    else
+    {
+        ROS_ERROR("%s: type error: %d", __func__, type);
+    }
     this->rfid_pub.publish(info);
 }
 
@@ -278,7 +290,23 @@ void DriverRFID::rcv_from_can_node_callback(const mrobot_msgs::vci_can::ConstPtr
             id.CanID_Struct.ACK = 1;
             id.CanID_Struct.SourceID = CAN_SOURCE_ID_RFID_INFO;
             this->ack_mcu_upload(dev_id, id, serial_num);
-            this->pub_rfid_info(dev_id, rfid_int);
+            this->pub_rfid_info(dev_id, 0, rfid_int);
+        }
+    }
+
+
+
+    if(id.CanID_Struct.SourceID == CAN_SOURCE_ID_UPLOAD_RFID_LEAVE)
+    {
+        if (data_len == 2)
+        {
+            ROS_INFO("get CAN_SOURCE_ID_UPLOAD_RFID_LEAVE");
+            CAN_ID_UNION id;
+            uint8_t serial_num = msg->Data[msg->DataLen - 1];
+            id.CanID_Struct.ACK = 1;
+            id.CanID_Struct.SourceID = CAN_SOURCE_ID_UPLOAD_RFID_LEAVE;
+            this->ack_mcu_upload(dev_id, id, serial_num);
+            this->pub_rfid_info(dev_id, 1, 0);
         }
     }
 
