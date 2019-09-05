@@ -26,12 +26,15 @@ int main(int argc, char **argv)
     {
         if(!init_flag)
         {
-            for(uint8_t i = 0; i < RFID_MAX_NUM; i++)
-            {
-                driver_rfid->get_version(i, 1);
-                driver_rfid->get_version(i, 2);
-                driver_rfid->get_version(i, 3);
-            }
+            driver_rfid->get_auth_rfid_version(1);
+            driver_rfid->get_auth_rfid_version(2);
+            driver_rfid->get_auth_rfid_version(3);
+            driver_rfid->get_dst_src_info_rfid_version(1);
+            driver_rfid->get_dst_src_info_rfid_version(2);
+            driver_rfid->get_dst_src_info_rfid_version(3);
+            driver_rfid->get_cabinet_detection_rfid_version(1);
+            driver_rfid->get_cabinet_detection_rfid_version(2);
+            driver_rfid->get_cabinet_detection_rfid_version(3);
             init_flag = true;
         }
         ros::spinOnce();
