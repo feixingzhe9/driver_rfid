@@ -102,6 +102,7 @@ int DriverRFID::ack_mcu_upload(uint8_t dev_id, CAN_ID_UNION id, uint8_t serial_n
 
 void DriverRFID::pub_rfid_info(uint8_t dev_id, uint8_t type, uint16_t data)
 {
+    return; //以后可能不会使用
     std_msgs::UInt16MultiArray info;
     info.data.clear();
     if(type == 0)
@@ -495,7 +496,6 @@ void DriverRFID::rcv_from_can_node_callback(const mrobot_msgs::vci_can::ConstPtr
             ROS_INFO("get rfid info %d", info);
             ROS_INFO("get dst id    0x%x", dst_info);
             ROS_INFO("get src id    0x%x", src_info);
-            //this->pub_rfid_info(dev_id, 1, 0);
             report_rfid_info(rfid_type, index, 1, info, dst_info, src_info);
         }
     }

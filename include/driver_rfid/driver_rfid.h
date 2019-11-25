@@ -107,7 +107,7 @@ class DriverRFID
             pub_to_can = n.advertise<mrobot_msgs::vci_can>("driver_rfid_to_can", 10);
             old_pub_to_can = n.advertise<mrobot_msgs::vci_can>("tx_rfid_node", 10);
             rfid_pub = n.advertise<std_msgs::UInt16MultiArray>("/driver_rfid/pub_info", 2);
-            report_rfid_info_pub = n.advertise<std_msgs::String>("report_driver_rfid_info", 2);
+            report_rfid_info_pub = n.advertise<std_msgs::String>("/driver_rfid/report_info", 2);
 
             old_rfid_pub = n.advertise<std_msgs::String>("rfid_pub", 2);
 
