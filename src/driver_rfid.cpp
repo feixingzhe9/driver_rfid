@@ -333,6 +333,35 @@ void DriverRFID::old_rcv_from_can_node_callback(const mrobot_msgs::vci_can::Cons
     }
 }
 
+std::string DriverRFID::get_version_param(uint8_t rfid_type, uint8_t index, uint8_t version_type)
+{
+    if(version_type == 1)
+    {
+        if (rfid_type == RFID_TYPE_CABINET_DETECT)
+        {
+            if (index < 9)
+            {
+                return cabinet_rfid_mcu_version_param[index];
+            }
+        }
+        if(rfid_type == RFID_TYPE_AUTH)
+        {
+            if(index < 3)
+            {
+                return auth_rfid_mcu_version_param[index];
+            }
+        }
+        if(rfid_type == RFID_TYPE_DST_SRC_INFO)
+        {
+            if(index < 4)
+            {
+                return dst_src_rfid_mcu_version_param[index];
+            }
+        }
+    }
+    return "";
+}
+
 void DriverRFID::rcv_from_can_node_callback(const mrobot_msgs::vci_can::ConstPtr &c_msg)
 {
     mrobot_msgs::vci_can can_msg;
@@ -399,12 +428,19 @@ void DriverRFID::rcv_from_can_node_callback(const mrobot_msgs::vci_can::ConstPtr
         switch(version_type)
         {
             case 1:
+            {
                 for (uint8_t i = 0; i < len; i++)
                 {
                     this->sw_version[dev_id].push_back(*(char *)&(msg->Data[i + 3]));
                 }
                 ROS_INFO("MCU software version :%s", this->sw_version[dev_id].c_str());
+                std::string version_param = get_version_param(rfid_type, index, 1);
+                if(version_param.c_str() != "")
+                {
+                    n.setParam(version_param, this->sw_version[dev_id].c_str());
+                }
                 break;
+            }
 
             case 2:
                 for (uint8_t i = 0; i < len; i++)

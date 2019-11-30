@@ -158,6 +158,8 @@ class DriverRFID
         uint8_t get_rfid_type_index(uint8_t dev_id);
         int report_rfid_info(uint8_t rfid_type, uint8_t index, uint8_t act, uint32_t rfid_info, uint32_t dst_info, uint32_t src_info);
 
+        std::string get_version_param(uint8_t rfid_type, uint8_t index, uint8_t version_type);
+
         std::string old_rfid_uid;
         std::string old_rfid_type;
         std::string old_rfid_data;
@@ -169,7 +171,15 @@ class DriverRFID
         std::string rfid_MCU_version_param[RFID_MAX_NUM] = {"mcu_rfid_0_version","mcu_rfid_1_version","mcu_rfid_2_version","mcu_rfid_3_version"
                                                            //, "mcu_rfid_4_version","mcu_rfid_5_version","mcu_rfid_6_version","mcu_rfid_7_version"
                                                             };
+        std::string auth_rfid_mcu_version_param[3] = {"mcu_auth_rfid_0_version", "mcu_auth_rfid_1_version", "mcu_auth_rfid_2_version"};
 
+        std::string cabinet_rfid_mcu_version_param[9] = {"mcu_cabinet_rfid_0_version", "mcu_cabinet_rfid_1_version", \
+                                                         "mcu_cabinet_rfid_2_version", "mcu_cabinet_rfid_3_version", \
+                                                         "mcu_cabinet_rfid_4_version", "mcu_cabinet_rfid_5_version", \
+                                                         "mcu_cabinet_rfid_6_version", "mcu_cabinet_rfid_7_version", \
+                                                         "mcu_cabinet_rfid_8_version"};
 
+        std::string dst_src_rfid_mcu_version_param[4] = {"mcu_src_dst_rfid_0_version", "mcu_src_dst_rfid_1_version"\
+                                                      "mcu_src_dst_rfid_2_version", "mcu_src_dst_rfid_3_version"};
 
 };
